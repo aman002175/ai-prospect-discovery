@@ -34,14 +34,7 @@ def validate_query_text(query: str) -> str:
     return cleaned
 
 def is_safe_url(url: str) -> bool:
-    """
-    Mandatory SSRF Protection:
-    - Allows only http and https protocols.
-    - Verifies hostname belongs to the approved allowlisted domains.
-    - Resolves DNS and blocks localhost, loopback, private RFC1918, link-local,
-      and multicast IP addresses.
-    - Prevents DNS rebinding and internal network probing.
-    """
+    # Verifies domain allowlist and resolves IP to prevent SSRF attacks against internal networks or cloud metadata
     if not url or not isinstance(url, str):
         return False
 

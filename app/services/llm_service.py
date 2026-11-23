@@ -66,7 +66,6 @@ class LLMService:
         return self._rule_based_intent(query)
 
     async def _call_gemini_intent(self, query: str, key: str) -> Optional[IntentData]:
-        """Calls Google Gemini 2.0 Flash REST API to parse query intent."""
         endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={key}"
         system_prompt = (
             "You are an expert search query intent parser. Extract structured parameters from the user's prospect discovery query.\n"
@@ -118,13 +117,9 @@ class LLMService:
         return None
 
     def _rule_based_intent(self, query: str) -> IntentData:
-        """
-        Deterministic rule-based query parser that handles standard queries
-        without relying on external API availability.
-        """
+        # Fallback keyword and regex matcher for common queries when no LLM key is configured
         q_lower = query.lower().strip()
 
-        # 1. Location extraction
         city, state, country = None, None, None
 
         # Check dictionary of known cities first
@@ -155,15 +150,13 @@ class LLMService:
                 if match_single:
                     city = match_single.group(1).strip()
 
-        # 2. Target type detection
         target_type = "individual"
         for kw in TARGET_TYPE_BUSINESS_KEYWORDS:
             if re.search(r"\b" + re.escape(kw) + r"\b", q_lower):
                 target_type = "business"
                 break
 
-        # 3. Interest and Audience extraction
-        # Strip location part to isolate persona & topic
+        # Strip location prepositions to isolate persona and domain
         topic_part = query
         for prep in [" in ", " near ", " around "]:
             if prep in topic_part.lower():
@@ -173,7 +166,6 @@ class LLMService:
 
         topic_clean = topic_part.strip()
 
-        # Parse audience & interest
         if "agency owners" in topic_clean.lower():
             interest = "Digital marketing"
             audience = "Agency owners"
@@ -206,5 +198,4 @@ class LLMService:
             raw_query=query
         )
 
-# Global singleton
 llm_service = LLMService()

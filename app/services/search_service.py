@@ -1,17 +1,4 @@
-"""
-Search Service: Multi-backend fallback chain for prospect discovery.
-Execution order:
-1. Tavily Search API (primary if TAVILY_API_KEY is configured in environment)
-2. DuckDuckGo HTML (with real browser User-Agent)
-3. DuckDuckGo Lite (lite.duckduckgo.com)
-4. Bing HTML Search (https://www.bing.com/search)
-
-Features:
-- SSRF verification on every endpoint & outbound URL
-- Bot challenge / CAPTCHA detection to automatically failover
-- 10-second timeouts & short inter-attempt delays
-- Transparent logging of HTTP status, bot challenge state, and zero-result page diagnostics
-"""
+"""Search backend integration with fallback handling."""
 import asyncio
 import base64
 import logging
@@ -54,24 +41,15 @@ class SearchService:
         self.endpoint_tavily = "https://api.tavily.com/search"
 
     def _get_tavily_key(self) -> str:
-        """Dynamically retrieves TAVILY_API_KEY from environment or config."""
         return os.getenv("TAVILY_API_KEY", "").strip() or TAVILY_API_KEY
 
     @staticmethod
     def is_bot_challenge(text: str) -> bool:
-        """Detects whether an HTML response is a bot challenge or CAPTCHA page."""
         lower = text.lower()
-        for sig in CHALLENGE_SIGNATURES:
-            if sig in lower:
-                return True
-        return False
+        return any(sig in lower for sig in CHALLENGE_SIGNATURES)
 
     async def search(self, query: str, platform: PlatformName, max_results: int = 5) -> List[RawSearchResult]:
-        """
-        Executes search using the resilient fallback chain:
-        Tavily (if key set) -> DuckDuckGo HTML -> DuckDuckGo Lite -> Bing HTML.
-        """
-        # 1. Tavily Search API (Primary when key is provided)
+        # Tavily is tried first if a key is provided
         tavily_key = self._get_tavily_key()
         if tavily_key:
             results = await self._search_tavily(query, platform, tavily_key, max_results)
@@ -80,21 +58,21 @@ class SearchService:
                 return results
             await asyncio.sleep(0.3)
 
-        # 2. DuckDuckGo HTML
+        # Fallback to DuckDuckGo HTML
         results = await self._search_ddg_html(query, platform, max_results)
         if results:
             logger.info("Search succeeded via DuckDuckGo HTML for platform %s (found %d)", platform, len(results))
             return results
         await asyncio.sleep(0.3)
 
-        # 3. DuckDuckGo Lite
+        # Fallback to DuckDuckGo Lite if HTML was challenged or returned empty
         results = await self._search_ddg_lite(query, platform, max_results)
         if results:
             logger.info("Search succeeded via DuckDuckGo Lite for platform %s (found %d)", platform, len(results))
             return results
         await asyncio.sleep(0.3)
 
-        # 4. Bing HTML Search
+        # Final fallback to Bing HTML
         results = await self._search_bing_html(query, platform, max_results)
         if results:
             logger.info("Search succeeded via Bing HTML for platform %s (found %d)", platform, len(results))
@@ -103,7 +81,6 @@ class SearchService:
         logger.warning("All search backends in fallback chain returned 0 results for query: '%s' [%s]", query, platform)
         return []
 
-    # --- 1. Tavily Search API ---
     async def _search_tavily(
         self, query: str, platform: PlatformName, api_key: str, max_results: int
     ) -> List[RawSearchResult]:
@@ -145,7 +122,6 @@ class SearchService:
 
         return []
 
-    # --- 2. DuckDuckGo HTML ---
     async def _search_ddg_html(self, query: str, platform: PlatformName, max_results: int) -> List[RawSearchResult]:
         if not is_safe_url(self.endpoint_ddg_html):
             return []
@@ -183,7 +159,6 @@ class SearchService:
 
         return []
 
-    # --- 3. DuckDuckGo Lite ---
     async def _search_ddg_lite(self, query: str, platform: PlatformName, max_results: int) -> List[RawSearchResult]:
         lite_url = f"{self.endpoint_ddg_lite}?q={urllib.parse.quote(query)}"
         if not is_safe_url(lite_url):
@@ -218,7 +193,6 @@ class SearchService:
 
         return []
 
-    # --- 4. Bing HTML Search ---
     async def _search_bing_html(self, query: str, platform: PlatformName, max_results: int) -> List[RawSearchResult]:
         bing_url = f"{self.endpoint_bing}?q={urllib.parse.quote(query)}"
         if not is_safe_url(bing_url):

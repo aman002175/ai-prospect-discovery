@@ -1,77 +1,54 @@
-# 🌐 AI-Powered Multi-Platform Prospect Discovery API
+# AI-Powered Multi-Platform Prospect Discovery API
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.11+" />
-  <img src="https://img.shields.io/badge/FastAPI-0.110.0-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI" />
-  <img src="https://img.shields.io/badge/Pydantic-v2.6-E92063?style=for-the-badge&logo=pydantic&logoColor=white" alt="Pydantic v2" />
-  <img src="https://img.shields.io/badge/Google%20Gemini-2.0%20Flash-4285F4?style=for-the-badge&logo=google&logoColor=white" alt="Gemini 2.0 Flash" />
-  <img src="https://img.shields.io/badge/Tavily-Search%20API-4F46E5?style=for-the-badge&logo=google-cloud&logoColor=white" alt="Tavily Search" />
-  <img src="https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker Ready" />
-  <img src="https://img.shields.io/badge/Pytest-20%20Passed-brightgreen?style=for-the-badge&logo=pytest&logoColor=white" alt="20 Tests Passed" />
-  <img src="https://img.shields.io/badge/Security-SSRF%20Hardened-red?style=for-the-badge&logo=shield&logoColor=white" alt="SSRF Hardened" />
-</p>
+![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
 
-<p align="center">
-  <strong>Transform natural language queries into real, verified public prospects across 9 platforms with zero data fabrication.</strong><br>
-  Built with Python 3.x, FastAPI, Google Gemini 2.0 Flash, Tavily Search, and an automated 4-tier anti-bot fallback chain.
-</p>
+A FastAPI microservice that accepts a natural-language search query (such as "Football lovers in Washington DC in USA") and returns a structured list of verified public prospect profiles across 9 platforms.
 
 ---
 
-## 📑 Table of Contents
-- [🎯 Key Highlights](#-key-highlights)
-- [🏗️ System Architecture & Pipeline](#️-system-architecture--pipeline)
-- [📜 Exact API Contract](#-exact-api-contract)
-- [🚀 Quick Start & Installation](#-quick-start--installation)
-- [⚙️ Running the API Server](#️-running-the-api-server)
-- [🧪 Live Verification & Sample Outputs](#-live-verification--sample-outputs)
-- [🌐 Supported Platforms & 4-Tier Search Engine](#-supported-platforms--4-tier-search-engine)
-- [⚠️ Documented Platform Limitations](#️-documented-platform-limitations)
-- [🤖 LLM Provider Comparison & Cost Analysis](#-llm-provider-comparison--cost-analysis)
-- [🔒 Security & SSRF Protection](#-security--ssrf-protection)
-- [🧪 Automated Test Suite (pytest)](#-automated-test-suite-pytest)
-- [🐳 Docker & Cloud Deployment](#-docker--cloud-deployment)
-- [🔑 Environment Variables](#-environment-variables)
+## Table of Contents
+- [Overview and Architecture](#overview-and-architecture)
+- [API Contract](#api-contract)
+- [Setup and Installation](#setup-and-installation)
+- [Running the Application](#running-the-application)
+- [Sample Requests and Real Outputs](#sample-requests-and-real-outputs)
+- [Supported Platforms and Discovery Engine](#supported-platforms-and-discovery-engine)
+- [Documented Platform Limitations](#documented-platform-limitations)
+- [LLM Provider Comparison and Cost Analysis](#llm-provider-comparison-and-cost-analysis)
+- [Security and SSRF Protection](#security-and-ssrf-protection)
+- [Automated Test Suite](#automated-test-suite)
+- [Docker and Cloud Deployment](#docker-and-cloud-deployment)
+- [Environment Variables](#environment-variables)
 
 ---
 
-## 🎯 Key Highlights
+## Overview and Architecture
 
-| Feature | Description |
-| :--- | :--- |
-| **🔍 Zero Fabrication** | Strictly discovers and verifies public profiles. Never hallucinates names, emails, or links. |
-| **🧠 Dual-Engine NLP** | Google Gemini 2.0 Flash for structured intent extraction, with deterministic rule-based fallback. |
-| **🔄 4-Tier Search Fallback** | Tavily API $\rightarrow$ DuckDuckGo HTML $\rightarrow$ DuckDuckGo Lite $\rightarrow$ Bing HTML (with challenge detection). |
-| **🌐 9 Standardized Platforms** | `Google`, `LinkedIn`, `X`, `YouTube`, `Instagram`, `WhatsApp`, `Facebook`, `Email`, `Threads`. |
-| **🧹 Canonical URL Cleaner** | Rejects tweets, post IDs, reels, and search links; normalizes to clean profile handles. |
-| **🛡️ SSRF & Rebinding Defense** | Pre-flight DNS resolution blocks private, loopback, and cloud metadata IPs (`169.254.169.254`). |
-| **⚡ Failure Isolated** | Each platform executes independently via `asyncio.gather(..., return_exceptions=True)`. |
-
----
-
-## 🏗️ System Architecture & Pipeline
-
-The microservice processes every natural language query through a resilient 9-stage pipeline:
+The service processes each query through a 9-stage pipeline:
 
 ```mermaid
 flowchart TD
-    A["👤 User Request<br><code>POST /prospect-discovery</code>"] --> B["🛡️ Stage 1: Pydantic Validation<br>(1-300 chars, non-empty, sanitized)"]
-    B --> C["🧠 Stage 2: Intent Extraction<br>(Gemini 2.0 Flash / Rule-Based NLP)"]
-    C --> D["🎯 Stage 3: Query Generation<br>(Platform-specific search dorks)"]
-    D --> E["⚡ Stage 4: Concurrent Discovery<br>(Tavily ➔ DDG ➔ Lite ➔ Bing)"]
-    E --> F["🔍 Stage 5: Contact Extraction<br>(BeautifulSoup + Regex mailto/wa.me/tel)"]
-    F --> G["🧹 Stage 6: Canonical URL Cleaner<br>(Strips /status/, /reel/, query params)"]
-    G --> H["📊 Stage 7: Relevance Scoring<br>(Interest + Location + Evidence scoring)"]
-    H --> I["🤝 Stage 8: Entity Deduplication<br>(Consolidates multi-platform records)"]
-    I --> J["📦 Stage 9: Contract Validation<br>(Pydantic response schema compliance)"]
+    A["User Request: POST /prospect-discovery"] --> B["Stage 1: Pydantic Validation"]
+    B --> C["Stage 2: Intent Extraction (Gemini / Rule-Based)"]
+    C --> D["Stage 3: Query Generation"]
+    D --> E["Stage 4: Concurrent Platform Search"]
+    E --> F["Stage 5: Contact and Profile Extraction"]
+    F --> G["Stage 6: URL Cleaning and Canonicalization"]
+    G --> H["Stage 7: Relevance Scoring"]
+    H --> I["Stage 8: Entity Deduplication"]
+    I --> J["Stage 9: Response Construction"]
 ```
 
-> [!NOTE]
-> **Independent Platform Failure**: If a platform or search backend blocks, times out (10s), or returns zero results, it fails silently for that platform without interrupting or failing the overall discovery request.
+### Pipeline Details
+- **No data fabrication**: Candidate names, profile links, emails, and phone numbers are only included if verified from public search results or pages.
+- **Independent platform failure**: Each platform search runs inside an isolated async task using `asyncio.gather(..., return_exceptions=True)`. A failure or timeout on one platform does not abort the remaining platforms.
+- **Intent extraction**: Gemini 2.0 Flash is the primary intent parser. A rule-based parser serves as an offline fallback for common keyword and location patterns.
+- **SSRF defense**: All outbound HTTP requests resolve target hostnames before connection to block private, loopback, and cloud metadata IP ranges.
 
 ---
 
-## 📜 Exact API Contract
+## API Contract
 
 ### Discovery Endpoint: `POST /prospect-discovery`
 
@@ -82,7 +59,10 @@ flowchart TD
 }
 ```
 
-#### Response Body (Strict Contract Shape)
+Validation constraints:
+- `query` is required, must be a string between 1 and 300 characters, and cannot be empty or whitespace only.
+
+#### Response Body Shape (Exact Contract)
 ```json
 {
   "success": true,
@@ -123,91 +103,83 @@ flowchart TD
 }
 ```
 
-### Contract Normalization Rules
-- **`name`** *(required)*: Candidate or business name. Platform noise like `\| LinkedIn` or `- YouTube` is stripped.
-- **`location`** *(optional)*: `"City, Country"` format when available from query or profile snippet.
-- **`social_link`** *(required array)*: Array of `{ "platform": "<name>", "link": "<url>" }`. Empty list `[]` allowed if no links verified.
-- **Strict Platform Enum (9 Names Only)**:
-  - `Google` *(discovery source only; generic search-result URLs are strictly dropped)*
-  - `LinkedIn` *(canonical profile `https://www.linkedin.com/in/<slug>`)*
-  - `X` *(canonical handle `https://x.com/<user>`)*
-  - `YouTube` *(canonical channel `https://www.youtube.com/@<handle>`)*
-  - `Instagram` *(canonical profile `https://www.instagram.com/<user>`)*
-  - `WhatsApp` *(direct click-to-chat `https://wa.me/<digits>`)*
-  - `Facebook` *(canonical page/profile `https://www.facebook.com/<user>`)*
-  - `Email` *(RFC-compliant `mailto:<email>`)*
-  - `Threads` *(canonical handle `https://www.threads.net/@<user>`)*
+### Contract Rules
+- `name` (required): Full individual or business name. Platform noise (such as `| LinkedIn` or `- YouTube`) is stripped.
+- `location` (optional): Formatted as `"City, Country"` or `"City, State, Country"` when available.
+- `social_link` (required list): List of `{ "platform": "<name>", "link": "<url>" }` objects. An empty list is allowed if no links are verified.
+- Allowed platform names (exactly 9):
+  - `Google` (used as a discovery source; generic search engine result links are dropped)
+  - `LinkedIn` (`https://www.linkedin.com/in/<slug>`)
+  - `X` (`https://x.com/<username>`)
+  - `YouTube` (`https://www.youtube.com/@<handle>`)
+  - `Instagram` (`https://www.instagram.com/<username>`)
+  - `WhatsApp` (`https://wa.me/<digits>`)
+  - `Facebook` (`https://www.facebook.com/<username>`)
+  - `Email` (`mailto:<email>`)
+  - `Threads` (`https://www.threads.net/@<username>`)
 
 ---
 
-## 🚀 Quick Start & Installation
+## Setup and Installation
 
 ### Prerequisites
-- Python 3.10+ (Tested on 3.11, 3.12, 3.13, 3.14)
-- Git & pip
+- Python 3.11+ (tested on Linux with Python 3.11 and Python 3.14)
+- Git
 
-### 1. Clone Repository
+### 1. Clone the Repository
 ```bash
-git clone https://github.com/your-username/ai-prospect-discovery.git
+git clone https://github.com/aman002175/ai-prospect-discovery.git
 cd ai-prospect-discovery
 ```
 
-### 2. Set Up Virtual Environment
+### 2. Create and Activate Virtual Environment
 ```bash
 python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+source venv/bin/activate
 ```
 
-### 3. Install Pinned Dependencies
+### 3. Install Dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. Configure Environment Variables
+### 4. Configure Environment
 ```bash
 cp .env.example .env
 ```
-Edit `.env` and add your keys (both services offer free tiers with **no credit card required**):
+Edit `.env` to supply API keys if available:
 ```ini
-# Google Gemini API Key (https://aistudio.google.com - 100% Free Tier)
 GOOGLE_API_KEY=your_gemini_api_key_here
-
-# Tavily Search API Key (https://tavily.com - 1,000 Free Searches/Month, No Card)
 TAVILY_API_KEY=your_tavily_api_key_here
-
-# Optional Server Settings
 PORT=4000
 HOST=0.0.0.0
 REQUEST_TIMEOUT=10.0
 ```
 
-> [!TIP]
-> Both keys are completely optional! If `GOOGLE_API_KEY` is omitted, the deterministic rule-based NLP parser activates automatically. If `TAVILY_API_KEY` is omitted, the search backend automatically falls back to DuckDuckGo HTML $\rightarrow$ DuckDuckGo Lite $\rightarrow$ Bing HTML.
+Both keys are optional. When `GOOGLE_API_KEY` is omitted, the rule-based keyword fallback parser handles standard queries. When `TAVILY_API_KEY` is omitted, the search backend falls back to DuckDuckGo HTML, DuckDuckGo Lite, and Bing HTML.
 
 ---
 
-## ⚙️ Running the API Server
+## Running the Application
 
-Start the application with Uvicorn:
+Start the server using Uvicorn:
 ```bash
 uvicorn app.main:app --host 0.0.0.0 --port 4000
 ```
 
-### Available Endpoints
-| Method | Endpoint | Description |
-| :---: | :--- | :--- |
-| `GET` | `/` | Service metadata, discovery engine status, and supported platforms |
-| `GET` | `/health` | Health check endpoint (`{"status": "ok"}`) |
-| `GET` | `/docs` | Interactive Swagger UI API documentation |
-| `POST` | `/prospect-discovery` | Main prospect discovery pipeline |
+Endpoints:
+- Service Info: `GET http://localhost:4000/`
+- Health Check: `GET http://localhost:4000/health`
+- Swagger Documentation: `GET http://localhost:4000/docs`
+- Prospect Discovery: `POST http://localhost:4000/prospect-discovery`
 
 ---
 
-## 🧪 Live Verification & Sample Outputs
+## Sample Requests and Real Outputs
 
-### Sample 1: Service Info (`GET /`)
+### Service Info: `GET /`
 ```bash
-curl -s -X GET http://localhost:4000/
+curl -s http://localhost:4000/
 ```
 ```json
 {
@@ -224,11 +196,9 @@ curl -s -X GET http://localhost:4000/
 }
 ```
 
----
-
-### Sample 2: Health Check (`GET /health`)
+### Health Check: `GET /health`
 ```bash
-curl -s -X GET http://localhost:4000/health
+curl -s http://localhost:4000/health
 ```
 ```json
 {
@@ -236,9 +206,7 @@ curl -s -X GET http://localhost:4000/health
 }
 ```
 
----
-
-### Sample 3: Live Query 1 — Football lovers in Washington DC
+### Discovery Run: Query 1 (Football lovers in Washington DC)
 ```bash
 curl -s -X POST http://localhost:4000/prospect-discovery \
   -H "Content-Type: application/json" \
@@ -284,9 +252,7 @@ curl -s -X POST http://localhost:4000/prospect-discovery \
 }
 ```
 
----
-
-### Sample 4: Live Query 2 — Digital marketing agency owners in New York
+### Discovery Run: Query 2 (Digital marketing agency owners in New York)
 ```bash
 curl -s -X POST http://localhost:4000/prospect-discovery \
   -H "Content-Type: application/json" \
@@ -336,154 +302,133 @@ curl -s -X POST http://localhost:4000/prospect-discovery \
 }
 ```
 
----
-
-### Sample 5: Input Validation (Whitespace Query Rejection)
+### Validation Error: Empty/Whitespace Query
 ```bash
 curl -s -X POST http://localhost:4000/prospect-discovery \
   -H "Content-Type: application/json" \
   -d '{"query": "   "}'
 ```
-**Response (HTTP 422):**
 ```json
 {
   "detail": "Value error, Query cannot be empty or whitespace only. for field 'query'"
 }
 ```
 
----
+### Test Query Execution Summary
 
-### 📊 End-to-End Live Execution Results Across All 5 Queries
-
-| Mandatory Test Query | Discovered Prospects | Verified Sample Profile Links & Contacts |
+| Test Query | Prospects Found | Sample Verified Platforms |
 | :--- | :---: | :--- |
-| **1. `"Football lovers in Washington DC in USA"`** | **12** | `LinkedIn`: `.../in/briana-millerbu`<br>`LinkedIn`: `.../in/andrechambers`<br>`X`: `https://x.com/UW_Football` |
-| **2. `"Digital marketing agency owners in New York USA"`** | **17** | `Instagram`: `.../syncdigitalmarketing`<br>`Facebook`: `.../hunterdigital`<br>`Email`: `mailto:info@gethunter.com`<br>`LinkedIn`: `.../in/techverce-llc...` |
-| **3. `"Startup founders in London UK"`** | **13** | `Threads`: `https://www.threads.net/@mikebutcher`<br>`Email`: `mailto:mike@pathfounders.com`<br>`X`: `https://x.com/londonvcnetwork`<br>`Instagram`: `.../sglondon` |
-| **4. `"Cricket lovers in Ahmedabad India"`** | **12** | `LinkedIn`: `.../in/darshan-ahmedabad-01747b9b`<br>`LinkedIn`: `.../in/the-cricket-33a724358`<br>`LinkedIn`: `.../in/abcl-ahmedabad-box-cricket-league...` |
-| **5. `"Restaurant owners in Dubai UAE"`** | **14** | `LinkedIn`: `.../in/neeraj-rawat-61300011b`<br>`YouTube`: `https://www.youtube.com/@restdubai`<br>`WhatsApp`: `https://wa.me/...` |
+| `Football lovers in Washington DC in USA` | 12 | LinkedIn (`/in/briana-millerbu`), X (`/UW_Football`) |
+| `Digital marketing agency owners in New York USA` | 17 | Instagram (`/syncdigitalmarketing`), Facebook (`/hunterdigital`), Email (`mailto:info@gethunter.com`), LinkedIn |
+| `Startup founders in London UK` | 13 | Threads (`/@mikebutcher`), Email (`mailto:mike@pathfounders.com`), X (`/londonvcnetwork`), Instagram |
+| `Cricket lovers in Ahmedabad India` | 12 | LinkedIn (`/in/darshan-ahmedabad-01747b9b`), LinkedIn (`/in/abcl-ahmedabad-box-cricket-league...`) |
+| `Restaurant owners in Dubai UAE` | 14 | LinkedIn (`/in/neeraj-rawat-61300011b`), YouTube (`/@restdubai`), WhatsApp (`wa.me/...`) |
 
 ---
 
-## 🌐 Supported Platforms & 4-Tier Search Engine
+## Supported Platforms and Discovery Engine
 
-### Supported Platforms
-1. **Google**: Search engine indexing backend for public websites, business listings, and entity discovery. Generic Google search URLs are never returned as prospect links.
-2. **LinkedIn**: Searches indexed public professional profiles (`site:linkedin.com/in/`).
-3. **X (formerly Twitter)**: Discovers public handles, accounts, and bio descriptions (`site:x.com`).
-4. **YouTube**: Discovers public creators, channels, and handle profiles (`site:youtube.com/@`).
-5. **Instagram**: Discovers public creator/business accounts (`site:instagram.com`).
-6. **Facebook**: Discovers public business pages and community hubs (`site:facebook.com`).
-7. **Threads**: Discovers public profile handles and bios (`site:threads.net/@`).
-8. **WhatsApp**: Discovers direct click-to-chat links (`https://wa.me/<digits>`) and advertised business contacts.
-9. **Email**: Extracts publicly advertised contact emails, formatted strictly as `mailto:<email>`.
+### Platforms
+1. **Google**: Search engine discovery source for websites and business entries. Generic search result links are dropped.
+2. **LinkedIn**: Discovers indexed public profile URLs (`site:linkedin.com/in/`).
+3. **X**: Discovers public account handles and bio snippets (`site:x.com`).
+4. **YouTube**: Discovers public creator channels and handles (`site:youtube.com/@`).
+5. **Instagram**: Discovers public creator and business profiles (`site:instagram.com`).
+6. **Facebook**: Discovers public business pages and community profiles (`site:facebook.com`).
+7. **Threads**: Discovers public profile handles (`site:threads.net/@`).
+8. **WhatsApp**: Discovers direct click-to-chat links (`https://wa.me/<digits>`).
+9. **Email**: Extracts publicly advertised contact emails (`mailto:<email>`).
 
-### 4-Tier Multi-Backend Fallback Chain
+### Search Backend Fallback Chain
+1. **Tavily Search API** (Primary when `TAVILY_API_KEY` is set): Returns structured JSON search results without bot challenges.
+2. **DuckDuckGo HTML**: Queries `https://html.duckduckgo.com/html/` with browser user-agent headers.
+3. **DuckDuckGo Lite**: Automatic failover to `https://lite.duckduckgo.com/lite/` if HTML is blocked.
+4. **Bing HTML Search**: Direct search via `https://www.bing.com/search`, decoding `a1`-prefixed base64 redirects into destination URLs.
 
-```mermaid
-flowchart LR
-    A["Query Request"] --> B["Tier 1: Tavily Search API<br>(Primary if key present)"]
-    B -- "0 results or no key" --> C["Tier 2: DuckDuckGo HTML<br>(Real Browser User-Agent)"]
-    C -- "Challenge / 202 / 0 results" --> D["Tier 3: DuckDuckGo Lite<br>(lite.duckduckgo.com)"]
-    D -- "Challenge / 202 / 0 results" --> E["Tier 4: Bing HTML Search<br>(Base64 a1 redirect decoding)"]
-```
+If a search backend returns a challenge page (such as "Unfortunately, bots use DuckDuckGo too"), the service treats the backend as unavailable and proceeds to the next backend in the chain.
 
-1. **Tavily Search API** *(Tier 1)*: 1,000 free searches/month without credit card. Provides high-fidelity JSON search results immune to datacenter anti-bot blocks.
-2. **DuckDuckGo HTML** *(Tier 2)*: Scrapes `https://html.duckduckgo.com/html/` with modern browser user-agent headers.
-3. **DuckDuckGo Lite** *(Tier 3)*: Low-overhead HTML fallback via `https://lite.duckduckgo.com/lite/`.
-4. **Bing HTML Search** *(Tier 4)*: Queries `https://www.bing.com/search`, extracts outbound results, and decodes Bing `a1` base64 URL redirects into canonical platform URLs.
+The rule-based fallback parser is a simple keyword and regex parser for common patterns and locations. Google Gemini 2.0 Flash is the primary intent path; the rule-based fallback does not handle arbitrary natural language queries.
 
 ---
 
-## ⚠️ Documented Platform Limitations
+## Documented Platform Limitations
 
-In strict adherence to ethical web scraping, privacy standards, and anti-abuse policies, the API accesses only **publicly indexable web data** and **never bypasses login screens, paywalls, or anti-bot CAPTCHAs**:
+The service queries publicly accessible search index data and does not attempt to bypass login walls, solve CAPTCHAs, or access private data:
 
-| Platform | Integration Status | Documented Limitation & Root Cause |
+| Platform | Status | Documented Limitation |
 | :--- | :---: | :--- |
-| **LinkedIn** | *Limited* | Enforces login walls on personal profile pages for unauthenticated visitors. Direct deep page scraping is blocked. Discovery is restricted to public search engine snippet metadata. |
-| **X (Twitter)** | *Limited* | Blocks unauthenticated profile inspection with redirect walls. Public handle URLs and bio snippets are indexed via search engines. |
-| **Instagram** | *Limited* | Redirects unauthenticated web requests to login prompts. Discovery relies strictly on public bio search snippets. |
-| **Facebook** | *Limited* | Personal profiles and groups require authentication. Public business pages are indexable, but personal data is guarded. |
-| **Threads** | *Limited* | Restricts headless profile scraping; public snippets are discovered via search index entries. |
-| **DuckDuckGo Backend** | *Limited (IP-dependent)* | When invoked from cloud/datacenter IP ranges, DuckDuckGo frequently issues a bot challenge ("Unfortunately, bots use DuckDuckGo too"). In such cases, the system advances through the fallback chain or returns an empty prospect list rather than attempting illegal CAPTCHA bypass. |
-| **YouTube** | *Fully Supported* | Public channel handles (`/@handle`) and video descriptions are freely accessible without login walls. |
-| **WhatsApp** | *Fully Supported* | Public `wa.me` links and publicly listed business phone contacts are normalized and verified. |
-| **Email** | *Fully Supported* | Validated with RFC-compliant syntax filters and screeners for dummy/placeholder domains. |
+| **LinkedIn** | Limited | Enforces login walls on personal profile pages for unauthenticated visitors. Direct deep page scraping is blocked. Discovery is limited to public search snippet metadata. |
+| **X** | Limited | Unauthenticated web visits encounter redirect and login barriers. Public handles and bio snippets are indexed via search engines. |
+| **Instagram** | Limited | Redirects unauthenticated web requests to login prompts. Discovery relies on public search index snippets. |
+| **Facebook** | Limited | Personal profiles and groups require authentication. Public business page links are indexable. |
+| **Threads** | Limited | Headless web access is restricted; public snippets are discovered via search index entries. |
+| **DuckDuckGo Backend** | Limited (IP-dependent) | Datacenter and cloud IP ranges frequently encounter bot challenges ("Unfortunately, bots use DuckDuckGo too"). The service falls back to Bing HTML rather than attempting CAPTCHA bypass. |
+| **YouTube** | Fully Supported | Public channel handles (`/@handle`) and descriptions are accessible without authentication. |
+| **WhatsApp** | Fully Supported | Public `wa.me` links and publicly listed phone contacts are normalized and verified. |
+| **Email** | Fully Supported | Validated with syntax checks and screened against dummy domains. |
 
 ---
 
-## 🤖 LLM Provider Comparison & Cost Analysis
+## LLM Provider Comparison and Cost Analysis
 
-The system extracts structured intent (`interest`, `audience`, `target_type`, `location`) using an LLM. Below is an evaluation of 3 leading LLM providers based on verified official pricing:
+Structured intent (`interest`, `audience`, `target_type`, `location`) is extracted from user queries. Below is a comparison of 3 LLM providers based on official pricing:
 
 | Provider | Model | Input Price / 1M Tokens | Output Price / 1M Tokens | Expected Latency | Accuracy for Task | Context Window | Native JSON Support |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Google** | **Gemini 2.0 Flash** *(Current)* | **$0.10** *(Free tier available)* | **$0.40** *(Free tier available)* | **~400ms – 650ms** | **High** | 1,000,000 | Native schema enforcement (`responseMimeType: application/json`) |
-| **OpenAI** | **GPT-4o mini** | $0.15 | $0.60 | ~600ms – 900ms | High | 128,000 | Structured Outputs (`json_schema`) |
-| **Anthropic** | **Claude 3.5 Haiku** | $0.80 | $4.00 | ~800ms – 1,200ms | High | 200,000 | Tool-calling / JSON mode |
+| **Google** | **Gemini 2.0 Flash** | **$0.10** (Free tier available) | **$0.40** (Free tier available) | ~400ms - 800ms (estimated network latency) | High | 1,000,000 | Native schema enforcement (`responseMimeType: application/json`) |
+| **OpenAI** | **GPT-4o mini** | $0.15 | $0.60 | ~600ms - 1,000ms (estimated) | High | 128,000 | Structured Outputs (`json_schema`) |
+| **Anthropic** | **Claude 3.5 Haiku** | $0.80 | $4.00 | ~800ms - 1,400ms (estimated) | High | 200,000 | Tool calling / JSON mode |
 
-*Note: Pricing verified against official provider pricing pages as of late 2024 / 2025.*
+*Pricing verified against official provider pricing documentation.*
 
-### Final Recommendation: Google Gemini 2.0 Flash
-1. **Best Economics**: At $0.10 / $0.40 per 1M tokens with a generous free tier (15 RPM / 1,500 RPD), it is the most cost-effective model for production query parsing.
-2. **Speed & Latency**: Sub-second round-trip time avoids synchronous API bottlenecks.
-3. **Structured Outputs**: Direct JSON mime-type enforcement guarantees schema compliance without malformed outputs.
-4. **Fallback Architecture**: If `GOOGLE_API_KEY` is not provided or Gemini encounters a network error, the built-in deterministic rule-based parser runs in **< 1ms** at **$0.00 cost**.
+### Recommendation: Google Gemini 2.0 Flash
+1. **Pricing**: At $0.10 / $0.40 per 1M tokens with a free tier (15 RPM / 1,500 RPD), it is the most economical option for query parsing.
+2. **Speed**: Low latency fits synchronous API requests.
+3. **Structured outputs**: Native `responseMimeType: application/json` returns schema-compliant JSON directly.
+4. **Fallback model**: When no key is set or upon network failure, the rule-based keyword parser runs locally at zero cost.
 
-### Per-Request Economics
-- **Average Prompt Size**: ~120 prompt tokens, ~45 output tokens = ~165 tokens total per request.
-- **Estimated Cost Per Query**: **~$0.00003 USD** (approx. 33,000 queries per $1.00 USD).
-- **Fallback Model**: Deterministic rule-based regex & entity parser (`$0.00 / 0ms latency`).
+### Cost Estimates
+- Average prompt size: ~120 prompt tokens, ~45 output tokens = ~165 tokens total per request.
+- Estimated cost per query: ~$0.00003 USD (approximately 30,000 queries per $1 USD, estimated based on ~165 tokens/query at $0.10/$0.40 per 1M tokens).
 
-### Cost-Optimization Best Practices
-- **Small Model Specialization**: Using lightweight models (Gemini 2.0 Flash / GPT-4o mini) rather than frontier models reduces token spend by over 92%.
-- **Concise System Prompting**: Focused instruction prompt (< 100 tokens) prevents token inflation.
-- **Single-Shot Classification**: Intent is parsed in one pass; no multi-turn LLM loops are executed.
-- **Deterministic Rule Fallback**: High-frequency keyword/location queries can be answered without touching paid LLM quotas.
-
----
-
-## 🔒 Security & SSRF Protection
-
-The codebase strictly implements all mandatory enterprise security controls:
-
-```mermaid
-flowchart LR
-    A["Outbound URL"] --> B{"Allowlist Domain Check?"}
-    B -- No --> C["❌ Reject (HTTP 400 / Drop)"]
-    B -- Yes --> D{"DNS Pre-Flight Resolution"}
-    D -- "Private / Loopback / Metadata IP" --> E["❌ Block SSRF (127.0.0.1, 10.0.0.0/8, 169.254.169.254)"]
-    D -- "Public Valid IP" --> F["✅ Safe Outbound Request (10s Timeout)"]
-```
-
-1. **Zero Hardcoded Secrets**: All keys and credentials come from environment variables. `.env` is covered by `.gitignore` and `.dockerignore`.
-2. **SSRF Protection (`validators.py`)**:
-   - Outbound HTTP requests can **never** target user-supplied URLs.
-   - Hostnames are checked against an allowlist of approved platforms and search backends.
-   - DNS resolution validates that target IPs do not fall into private (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), loopback (`127.0.0.0/8`), link-local (`169.254.0.0/16`), or cloud metadata IPs.
-3. **Input Sanitization**: Pydantic validates all inputs. Empty queries, whitespace-only queries, and queries exceeding 300 characters are rejected with HTTP 422.
-4. **Not an Open Relay**: The service does not store platform credentials, execute logins, or post any content.
-5. **No Stacktrace Leaking**: Unhandled exceptions are intercepted by global handlers and return generic `{"detail": "Internal server error"}` without exposing internal traces.
-6. **Timeouts**: Every outbound call enforces a strict **10-second timeout** (`REQUEST_TIMEOUT`).
+### Cost Optimization Notes
+- Using a smaller model (such as Gemini 2.0 Flash or GPT-4o mini) reduces token costs significantly compared to frontier models.
+- Short, targeted prompts keep token usage low.
+- Single-turn intent classification avoids repeated multi-turn LLM loops.
+- Common queries can be parsed with the rule-based keyword fallback without incurring LLM charges.
 
 ---
 
-## 🧪 Automated Test Suite (pytest)
+## Security and SSRF Protection
 
-The test suite provides 100% offline-executable tests by mocking external network interactions:
-- ✅ Tests all 5 mandatory queries and verifies contract compliance.
-- ✅ Tests input validation (empty query, whitespace query, >300 chars, invalid JSON).
-- ✅ Tests deduplication (merging multi-platform profiles for the same individual).
-- ✅ Tests SSRF protection (blocking `localhost`, `127.0.0.1`, RFC1918 subnets, and AWS metadata IP).
-- ✅ Tests bot-challenge detection, Bing URL decoding, and 4-tier search fallback.
-- ✅ Tests Tavily Search API and Gemini fallback behavior.
+1. **No hardcoded credentials**: API keys are read from environment variables. `.env` is listed in `.gitignore` and `.dockerignore`.
+2. **SSRF protection (`is_safe_url`)**:
+   - Outbound requests only target domains on the allowlist (`duckduckgo.com`, `bing.com`, `tavily.com`, and approved platform domains).
+   - DNS resolution verifies that target IPs do not belong to private networks (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), loopback (`127.0.0.0/8`), link-local (`169.254.0.0/16`), or multicast ranges.
+   - User-supplied URLs are never fetched directly.
+3. **Input validation**: Handled via Pydantic. Queries over 300 characters, empty strings, and whitespace-only requests are rejected with HTTP 422.
+4. **Error handling**: Global exception handlers return generic error responses (`{"detail": "Internal server error"}`) without exposing stack traces.
+5. **Timeouts**: Outbound HTTP requests enforce a 10-second timeout (`REQUEST_TIMEOUT`).
 
-### Run the Tests
+---
+
+## Automated Test Suite
+
+Tests run offline using mocked responses for external network interactions:
+- Health check and root metadata endpoints
+- Input validation (empty query, whitespace query, overlong query, bad JSON)
+- Offline mock runs for the 5 test queries
+- Entity deduplication and link merging
+- SSRF checks (blocking localhost, private subnets, cloud metadata IPs)
+- Bot challenge detection and search fallback chain
+- Tavily search invocation and Gemini key handling
+
+### Running Tests
 ```bash
 PYTHONPATH=. pytest -v tests/test_prospect_discovery.py
 ```
 
+Test output:
 ```text
 ============================= test session starts ==============================
 rootdir: /root/ai-prospect-discovery
@@ -511,43 +456,35 @@ tests/test_prospect_discovery.py::test_search_fallback_on_bot_challenge PASSED [
 tests/test_prospect_discovery.py::test_tavily_search_api_primary_when_key_set PASSED [ 95%]
 tests/test_prospect_discovery.py::test_gemini_api_key_and_fallback PASSED [100%]
 
-======================== 20 passed, 6 warnings in 70.72s ========================
+======================== 20 passed, 6 warnings in 61.59s ========================
 ```
 
 ---
 
-## 🐳 Docker & Cloud Deployment
+## Docker and Cloud Deployment
 
-### 1. Build Docker Image
+### Docker
 ```bash
 docker build -t ai-prospect-discovery:latest .
-```
-
-### 2. Run Container
-```bash
 docker run -d -p 4000:4000 --env-file .env ai-prospect-discovery:latest
 ```
 
-### 3. Cloud / Hugging Face Spaces Deployment
-The `Dockerfile` dynamically binds to the `$PORT` environment variable provided by cloud hosts (e.g. `7860` for Hugging Face Spaces):
+The Dockerfile uses `python:3.11-slim` and reads the port dynamically from the `PORT` environment variable (defaulting to 4000):
 ```dockerfile
 CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-4000}"]
 ```
 
+### Cloud Platforms (Hugging Face Spaces / Render)
+An entrypoint [`app.py`](app.py) is provided at the repository root. When deployed to platforms that use port 7860 (such as Hugging Face Spaces), it binds to the appropriate port and exposes the FastAPI application.
+
 ---
 
-## 🔑 Environment Variables
+## Environment Variables
 
-| Variable | Description | Default | Required? |
+| Variable | Description | Default | Required |
 | :--- | :--- | :---: | :---: |
-| `GOOGLE_API_KEY` | Google Gemini API key for intent extraction ([Free Tier](https://aistudio.google.com)) | `""` | No *(Rule-based NLP fallback activates)* |
-| `TAVILY_API_KEY` | Tavily Search API key ([1,000 free searches/month](https://tavily.com)) | `""` | No *(HTML fallback chain activates)* |
-| `PORT` | Web server port (auto-bound in Docker/Cloud) | `4000` | No |
-| `HOST` | Network interface binding | `0.0.0.0` | No |
-| `REQUEST_TIMEOUT` | Max timeout for outbound calls in seconds | `10.0` | No |
-
----
-
-<p align="center">
-  <sub>Engineered with precision for high-reliability prospect intelligence. Zero fake data, 100% public truth.</sub>
-</p>
+| `GOOGLE_API_KEY` | Google Gemini API key for query intent parsing | `""` | No (rule-based keyword parser used if omitted) |
+| `TAVILY_API_KEY` | Tavily Search API key for prospect search | `""` | No (HTML fallback chain used if omitted) |
+| `PORT` | Server listen port | `4000` | No |
+| `HOST` | Server host binding | `0.0.0.0` | No |
+| `REQUEST_TIMEOUT` | Timeout for outbound HTTP requests in seconds | `10.0` | No |

@@ -40,23 +40,10 @@ PLATFORMS = [
 
 class ProspectService:
     async def discover_prospects(self, raw_query: str) -> ProspectDiscoveryResponse:
-        """
-        Executes the end-to-end prospect discovery pipeline:
-        (1) Validate query (Pydantic / length check)
-        (2) Understand query intent with LLM (or rule-based fallback)
-        (3) Discover prospects across platforms concurrently with failure isolation
-        (4) Extract profile info and contact details
-        (5) Score relevance
-        (6) Deduplicate profiles of the same person/entity
-        (7) Return response conforming to exact API contract
-        """
-        # Step 1: Validate input
         clean_query = validate_query_text(raw_query)
-
-        # Step 2: Extract Intent
         intent = await llm_service.extract_intent(clean_query)
 
-        # Step 3: Run platform searches concurrently with per-platform isolation
+        # return_exceptions=True isolates platform failures so one blocked network call does not abort the rest
         tasks = [platform.discover(intent) for platform in PLATFORMS]
         results_nested = await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -71,7 +58,6 @@ class ProspectService:
             elif isinstance(res, list):
                 all_raw_results.extend(res)
 
-        # Step 4: Extract profiles from search results
         extracted_profiles: List[ExtractedProfile] = []
         for item in all_raw_results:
             platform_obj = next((p for p in PLATFORMS if p.platform_name == item.platform), None)
@@ -80,20 +66,14 @@ class ProspectService:
                 if profile:
                     extracted_profiles.append(profile)
 
-        # Step 5: Score relevance and filter false positives
         relevant_profiles = relevance_service.filter_relevant(extracted_profiles, intent)
-
-        # Step 6: Deduplicate and consolidate into unified prospects
         consolidated_prospects = deduplication_service.consolidate(relevant_profiles)
 
-        # Step 7: Construct final response
-        response = ProspectDiscoveryResponse(
+        return ProspectDiscoveryResponse(
             success=True,
             query=clean_query,
             total_prospects=len(consolidated_prospects),
             prospects=consolidated_prospects
         )
-
-        return response
 
 prospect_service = ProspectService()
