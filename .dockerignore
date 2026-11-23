@@ -1,0 +1,20 @@
+# Secrets & env files
+.env
+*.env
+
+# Git & caches
+.git
+.gitignore
+__pycache__
+*pycache*
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+.coverage
+htmlcov
+
+# Docker & logs
+Dockerfile
+.dockerignore
+*.log
